@@ -1,0 +1,175 @@
+---
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: mastodon
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: mastodon-config
+  namespace: mastodon
+data:
+  SINGLE_USER_MODE: true
+  LOCAL_DOMAIN: gayhorse.club
+  DB_HOST: 127.0.0.1:5432
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: web
+  namespace: mastodon
+spec:
+  template:
+    volumes:
+    - name: cloudsql-instance-credentials
+      secret:
+        secretName: db_proxy_secret
+    containers:
+      spec:
+      - image: tootsuite/mastodon:v2.4.5
+        command:
+          - bundle exec rails s
+          - -p '3000'
+          - -b '0.0.0.'
+        ports:
+        - name: web
+          containerPort: 3000
+        env:
+        - name: REDIS_URL
+          value: redis://redis.mastodon.svc.cluster.local:6379
+        - name: DATABASE_URL
+          secretKeyRef:
+            name: mastodon_db
+            key: database_url
+        envFrom:
+        - configMapRef:
+            name: mastodon-config
+        - secretRef:
+      - name: cloudsql-proxy
+        image: gcr.io/cloudsql-docker/gce-proxy:1.11
+        command: ["/cloud_sql_proxy",
+                  "-instances=mastodon=tcp:5432",
+                  "-credential_file=/secrets/cloudsql/credentials.json"]
+        securityContext:
+          runAsUser: 2  # non-root user
+          allowPrivilegeEscalation: false
+        volumeMounts:
+          - name: cloudsql-instance-credentials
+            mountPath: /secrets/cloudsql
+            readOnly: true
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: streaming
+  namespace: mastodon
+spec:
+  template:
+    spec:
+      volumes:
+      - name: cloudsql-instance-credentials
+        secret:
+          secretName: db_proxy_secret
+      containers:
+      - image: tootsuite/mastodon:v2.4.5
+        command:
+          - "yarn start"
+        ports:
+        - name: streaming
+          containerPort: 4000
+        env:
+        - name: REDIS_URL
+          value: redis://redis.mastodon.svc.cluster.local:6379
+        - name: DATABASE_URL
+          secretKeyRef:
+            name: mastodon_db
+            key: database_url
+        envFrom:
+        - configMapRef:
+            name: mastodon-config
+      - name: cloudsql-proxy
+        image: gcr.io/cloudsql-docker/gce-proxy:1.11
+        command: ["/cloud_sql_proxy",
+                  "-instances=mastodon=tcp:5432",
+                  "-credential_file=/secrets/cloudsql/credentials.json"]
+        securityContext:
+          runAsUser: 2  # non-root user
+          allowPrivilegeEscalation: false
+        volumeMounts:
+          - name: cloudsql-instance-credentials
+            mountPath: /secrets/cloudsql
+            readOnly: true
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: worker
+  namespace: mastodon
+spec:
+  template:
+    spec:
+      volumes:
+      - name: cloudsql-instance-credentials
+        secret:
+          secretName: db_proxy_secret
+      containers:
+      - image: tootsuite/mastodon:v2.4.5
+        command:
+          - bundle exec sidekiq
+          - -q default
+          - -q mailers
+          - -q pull
+          - -q push
+        env:
+        - name: REDIS_URL
+          value: redis://redis.mastodon.svc.cluster.local:6379
+        - name: DATABASE_URL
+          secretKeyRef:
+            name: mastodon_db
+            key: database_url
+        envFrom:
+        - configMapRef:
+            name: mastodon-config
+      - name: cloudsql-proxy
+        image: gcr.io/cloudsql-docker/gce-proxy:1.11
+        command: ["/cloud_sql_proxy",
+                  "-instances=mastodon=tcp:5432",
+                  "-credential_file=/secrets/cloudsql/credentials.json"]
+        securityContext:
+          runAsUser: 2  # non-root user
+          allowPrivilegeEscalation: false
+        volumeMounts:
+          - name: cloudsql-instance-credentials
+            mountPath: /secrets/cloudsql
+            readOnly: true
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: redis
+  namespace: mastodon
+spec:
+  template:
+    metadata:
+      label: redis
+      role: master
+    spec:
+      image: redis:4-alphine3.8
+      ports:
+      - name: redis
+        containerPort: 6379
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: redis
+  namespace: mastodon
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    app: redis
+    role: master

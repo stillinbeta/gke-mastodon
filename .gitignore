@@ -1,0 +1,5 @@
+/account.json
+/*.tfstate
+/*.tfstate.backup
+/.terraform/
+/*.plan
