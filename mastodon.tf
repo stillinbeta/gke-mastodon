@@ -5,11 +5,34 @@ provider "google" {
 }
 
 resource "google_sql_database_instance" "master" {
-  name = "mastodon-master"
   database_version = "POSTGRES_9_6"
+  region = "${var.region}"
 
   settings {
     tier = "db-f1-micro"
+  }
+}
+
+resource "random_string" "otp_secret" {
+  length = 64
+  special = false
+}
+
+resource "random_string" "secret_key_base" {
+  length = 128
+  special = false
+  upper = false
+}
+
+resource "kubernetes_secret" "mastodon-secrets" {
+  metadata = {
+    name = "mastodon-secrets"
+    namespace = "mastodon"
+  }
+
+  data = {
+    "OTP_SECRET" = "${random_string.otp_secret.result}"
+    "SECRET_KEY_BASE" = "${random_string.secret_key_base.result}"
   }
 }
 
@@ -18,27 +41,27 @@ resource "random_string" "database_password" {
 }
 
 resource "google_sql_database" "mastodon" {
-  name = "mastodon"
+  name     = "mastodon-db"
   instance = "${google_sql_database_instance.master.name}"
 }
 
-resource "google_sql_user" "mastodon_db_user"{
+resource "google_sql_user" "mastodon_db_user" {
   instance = "${google_sql_database_instance.master.name}"
-  name = "mastodon_db_user"
+  name     = "mastodon_db_user"
   password = "${random_string.database_password.result}"
 }
 
-resource "kubernetes_secret" "mastodon_db_creds" {
+resource "kubernetes_secret" "mastodon-db-creds" {
   metadata = {
-    name = "mastodon-db"
+    name      = "mastodon-db-creds"
     namespace = "mastodon"
   }
 
   type = "opaque"
 
   data = {
-    "DB_NAME" = "${google_sql_database.mastodon.name}"
-    "DB_USER" = "${google_sql_user.mastodon_db_user.name}"
+    "DB_NAME"     = "${google_sql_database.mastodon.name}"
+    "DB_USER"     = "${google_sql_user.mastodon_db_user.name}"
     "DB_PASSWORD" = "${google_sql_user.mastodon_db_user.password}"
   }
 }
@@ -47,15 +70,13 @@ resource "google_service_account" "db_proxy_user" {
   account_id = "db-proxy-user"
 }
 
-
 resource "google_service_account_key" "db_proxy_key" {
   service_account_id = "${google_service_account.db_proxy_user.name}"
 }
 
-
 resource "kubernetes_secret" "db_proxy_secret" {
   metadata {
-    name = "db-proxy-secret"
+    name      = "db-proxy-secret"
     namespace = "mastodon"
   }
 
@@ -65,15 +86,20 @@ resource "kubernetes_secret" "db_proxy_secret" {
 }
 
 data "google_container_cluster" "mastodon_prod" {
-  name = "gayhorse-prod"
+  name = "${var.cluster_name}"
   zone = "${var.cluster_zone}"
 }
 
+output "debug" {
+  value = "${data.google_container_cluster.mastodon_prod.endpoint}"
+}
 
 provider "kubernetes" {
   host = "https://${data.google_container_cluster.mastodon_prod.endpoint}/"
 
-  client_certificate = "${data.google_container_cluster.mastodon_prod.master_auth.0.client_certificate}"
-  client_key = "${data.google_container_cluster.mastodon_prod.master_auth.0.client_key}"
-  cluster_ca_certificate = "${data.google_container_cluster.mastodon_prod.master_auth.0.cluster_ca_certificate}"
+
+  # TODO(EKF): this isn't working right now
+  # client_certificate     = "${base64encode(data.google_container_cluster.mastodon_prod.master_auth.0.client_certificate)}"
+  # client_key             = "${base64decode(data.google_container_cluster.mastodon_prod.master_auth.0.client_key)}"
+  # cluster_ca_certificate = "${base64decode(data.google_container_cluster.mastodon_prod.master_auth.0.cluster_ca_certificate)}"
 }

@@ -1,7 +1,7 @@
 variable "project_name" {}
 
 variable "cluster_name" {
-  default="mastodon_prod"
+  default = "mastodon_prod"
 }
 
 variable "region" {
