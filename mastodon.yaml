@@ -12,7 +12,7 @@ metadata:
 data:
   SINGLE_USER_MODE: "true"
   LOCAL_DOMAIN: gayhorse.club
-  DB_HOST: 127.0.0.1:5432
+  DB_HOST: 127.0.0.1
   RAILS_ENV: production
 ---
 kind: Deployment
@@ -35,7 +35,7 @@ spec:
           secretName: db-proxy-secret
       containers:
       - name: web
-        image: tootsuite/mastodon:v2.4.5
+        image: tootsuite/mastodon:v2.5.0
         command:
           - bundle
           - exec
@@ -59,11 +59,17 @@ spec:
       - name: cloudsql-proxy
         image: gcr.io/cloudsql-docker/gce-proxy:1.11
         command: ["/cloud_sql_proxy",
-                  "-instances=mastodon=tcp:5432",
+                  "-instances=$(INSTANCE_NAME)=tcp:5432",
                   "-credential_file=/secrets/cloudsql/credentials.json"]
         securityContext:
           runAsUser: 2  # non-root user
           allowPrivilegeEscalation: false
+        env:
+        - name: INSTANCE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: "db-proxy-connection-name"
+              key: instance-name
         volumeMounts:
           - name: cloudsql-instance-credentials
             mountPath: /secrets/cloudsql
@@ -89,7 +95,7 @@ spec:
           secretName: db-proxy-secret
       containers:
       - name: streaming
-        image: tootsuite/mastodon:v2.4.5
+        image: tootsuite/mastodon:v2.5.0
         command: ["yarn", "start"]
         ports:
         - name: streaming
@@ -107,11 +113,17 @@ spec:
       - name: cloudsql-proxy
         image: gcr.io/cloudsql-docker/gce-proxy:1.11
         command: ["/cloud_sql_proxy",
-                  "-instances=mastodon=tcp:5432",
+                  "-instances=$(INSTANCE_NAME)=tcp:5432",
                   "-credential_file=/secrets/cloudsql/credentials.json"]
         securityContext:
           runAsUser: 2  # non-root user
           allowPrivilegeEscalation: false
+        env:
+        - name: INSTANCE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: "db-proxy-connection-name"
+              key: instance-name
         volumeMounts:
           - name: cloudsql-instance-credentials
             mountPath: /secrets/cloudsql
@@ -138,7 +150,7 @@ spec:
           secretName: db-proxy-secret
       containers:
       - name: worker
-        image: tootsuite/mastodon:v2.4.5
+        image: tootsuite/mastodon:v2.5.0
         command:
           - bundle
           - exec
@@ -160,11 +172,17 @@ spec:
       - name: cloudsql-proxy
         image: gcr.io/cloudsql-docker/gce-proxy:1.11
         command: ["/cloud_sql_proxy",
-                  "-instances=mastodon=tcp:5432",
+                  "-instances=$(INSTANCE_NAME)=tcp:5432",
                   "-credential_file=/secrets/cloudsql/credentials.json"]
         securityContext:
           runAsUser: 2  # non-root user
           allowPrivilegeEscalation: false
+        env:
+        - name: INSTANCE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: "db-proxy-connection-name"
+              key: instance-name
         volumeMounts:
           - name: cloudsql-instance-credentials
             mountPath: /secrets/cloudsql
@@ -205,3 +223,29 @@ spec:
   selector:
     app: redis
     role: master
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: web-ingress
+  namespace: mastodon
+spec:
+  ports:
+  - port: 3000
+    targetPort: 3000
+  selector:
+    app: web
+  type: NodePort
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: streaming-ingress
+  namespace: mastodon
+spec:
+  ports:
+  - port: 4000
+    targetPort: 4000
+  selector:
+    app: streaming
+  type: NodePort

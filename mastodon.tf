@@ -60,14 +60,22 @@ resource "kubernetes_secret" "mastodon-db-creds" {
   type = "opaque"
 
   data = {
-    "DB_NAME"     = "${google_sql_database.mastodon.name}"
-    "DB_USER"     = "${google_sql_user.mastodon_db_user.name}"
-    "DB_PASSWORD" = "${google_sql_user.mastodon_db_user.password}"
+    "DB_NAME" = "${google_sql_database.mastodon.name}"
+    "DB_USER" = "${google_sql_user.mastodon_db_user.name}"
+    "DB_PASS" = "${google_sql_user.mastodon_db_user.password}"
   }
 }
 
 resource "google_service_account" "db_proxy_user" {
   account_id = "db-proxy-user"
+}
+
+resource "google_project_iam_binding" "db_proxy_binding" {
+  project = "${var.project_name}"
+  role = "roles/cloudsql.client"
+  members = [
+    "serviceAccount:${google_service_account.db_proxy_user.email}"
+  ]
 }
 
 resource "google_service_account_key" "db_proxy_key" {
@@ -85,13 +93,21 @@ resource "kubernetes_secret" "db_proxy_secret" {
   }
 }
 
+resource "kubernetes_config_map" "db_proxy_connection_name" {
+  metadata =
+  {
+    name = "db-proxy-connection-name"
+    namespace = "mastodon"
+  }
+
+  data {
+    "instance-name" = "${var.project_name}:${var.region}:${google_sql_database_instance.master.name}"
+  }
+}
+
 data "google_container_cluster" "mastodon_prod" {
   name = "${var.cluster_name}"
   zone = "${var.cluster_zone}"
-}
-
-output "debug" {
-  value = "${data.google_container_cluster.mastodon_prod.endpoint}"
 }
 
 provider "kubernetes" {
