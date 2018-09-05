@@ -133,3 +133,18 @@ resource "local_file" "serve_yaml" {
   filename = "${path.module}/serve.yaml"
   content = "${data.template_file.serve_yaml_template.rendered}"
 }
+
+resource "kubernetes_secret" "smtp" {
+  metadata = {
+    namespace = "mastodon"
+    name = "smtp-secerts"
+  }
+
+  data = {
+    "SMTP_SERVER"=  "${var.smtp_server}"
+    "SMTP_LOGIN" = "${var.smtp_login}"
+    "SMTP_PASSWORD" = "${var.smtp_password}"
+    "SMTP_PORT" = "${var.smtp_port}"
+    "SMTP_FROM_ADDRESS" = "notifications@${var.domain}"
+  }
+}

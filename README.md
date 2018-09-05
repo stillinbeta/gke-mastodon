@@ -74,6 +74,16 @@ kubectl apply -f vendor/contour.yaml
 kubectl apply -f vendor/certmanager.yaml
 ```
 
+### SMTP
+
+An [attempt was made][mgb] to automate this with terraform, but a [bug][bug] stymied that attempt.
+Instead, set up an account (Mastodon recommends [Mailgun][mg] or [SparkPost][sp]). and set the `smtp_server`, `smtp_login`, and `smtp_password` terraform variables.
+
+[mgb]: https://github.com/stillinbeta/gke-mastodon/pull/1
+[bug]: https://github.com/terraform-providers/terraform-provider-mailgun/issues/16
+[mg]: https://www.mailgun.com/
+[sp]: https://www.sparkpost.com/
+
 ## Set Up
 
 ```

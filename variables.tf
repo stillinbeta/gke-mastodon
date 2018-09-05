@@ -15,3 +15,19 @@ variable "cluster_zone" {
 variable "letsencrypt_email" {}
 
 variable "domain" {}
+
+variable "smtp_server" {
+  default = "smtp.mailgun.com"
+}
+
+variable "smtp_login" {
+  default = "mastodon"
+}
+
+variable "smtp_password" {
+  default = ""
+}
+
+variable "smtp_port" {
+  default = 587
+}
