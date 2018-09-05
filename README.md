@@ -11,13 +11,15 @@ The following prerequesties are necessary to set up Mastodon
 You need the following Google Cloud APIs enabled:
 
 * [Cloud SQL][sql]
-* [ IAM Identity and Account Management][iam]
+* [IAM Identity and Account Management][iam]
 * [Cloud Resource Manager][resource]
+* [DNS][dns]
 
 
 [sql]: https://console.developers.google.com/apis/api/sqladmin.googleapis.com/overview
 [iam]:https://console.developers.google.com/apis/api/iam.googleapis.com/overview
 [resource]: https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview
+[dns]: https://console.developers.google.com/apis/api/dns.googleapis.com/overview
 
 ### Google Kubernetes Engine
 
@@ -73,6 +75,13 @@ kubectl apply -f vendor/contour.yaml
 ```
 kubectl apply -f vendor/certmanager.yaml
 ```
+
+### Mailgun
+
+Sign up for a [mailgun][mailgun] account. Add your [API key][api] to the terraform variables.
+
+[mailgun]: https://www.mailgun.com/
+[api]: https://app.mailgun.com/app/account/security
 
 ## Set Up
 

@@ -15,3 +15,5 @@ variable "cluster_zone" {
 variable "letsencrypt_email" {}
 
 variable "domain" {}
+
+variable "mailgun_api_key" {}
