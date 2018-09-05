@@ -133,3 +133,62 @@ resource "local_file" "serve_yaml" {
   filename = "${path.module}/serve.yaml"
   content = "${data.template_file.serve_yaml_template.rendered}"
 }
+
+provider "mailgun" {
+  api_key = "${var.mailgun_api_key}"
+}
+
+resource "random_string" "mailgun_password" {
+  length = 64
+  special = false
+}
+
+resource "mailgun_domain" "mg" {
+  name = "${var.domain}"
+  smtp_password = "${random_string.mailgun_password.result}"
+}
+
+
+resource "kubernetes_secret" "mailgun" {
+  metadata = {
+    namespace = "mastodon"
+    name = "mailgun-secert"
+  }
+
+  data = {
+    "SMTP_SERVER"=  "smtp.mailgun.org"
+    "SMTP_PASSWORD" = "${mailgun_domain.mg.smtp_password}"
+    "SMTP_LOGIN" = "${mailgun_domain.mg.smtp_login}"
+  }
+}
+
+resource "google_dns_managed_zone" "mastodon" {
+  name = "mastodon"
+  dns_name = "${var.domain}"
+}
+
+resource "google_dns_record_set" "mailgun_send_records" {
+  # seemingly does not work with resources
+  # count = "${length(mailgun_domain.mg.sending_records)}"
+  count = 2
+
+  name = "${lookup(mailgun_domain.mg.sending_records[count.index], "name")}"
+  type = "${lookup(mailgun_domain.mg.sending_records[count.index], "record_type")}"
+  rrdatas = ["\"${lookup(mailgun_domain.mg.sending_records[count.index], "name")}\""]
+
+  managed_zone = "${google_dns_managed_zone.mastodon.name}"
+  ttl = 300
+}
+
+resource "google_dns_record_set" "mailgun_receive_records" {
+  # seemingly does not work with resources
+  # count = "${length(mailgun_domain.mg.receiving_records)}"
+  count = 2
+
+  name = "${lookup(mailgun_domain.mg.receiving_records[count.index], "name")}"
+  type = "${lookup(mailgun_domain.mg.receiving_records[count.index], "record_type")}"
+  rrdatas = ["\"${lookup(mailgun_domain.mg.receiving_records[count.index], "name")}\""]
+
+  managed_zone = "${google_dns_managed_zone.mastodon.name}"
+  ttl = 300
+}

@@ -56,6 +56,8 @@ spec:
             name: mastodon-db-creds
         - secretRef:
             name: mastodon-secrets
+        - secretRef:
+            name: mailgun
       - name: cloudsql-proxy
         image: gcr.io/cloudsql-docker/gce-proxy:1.11
         command: ["/cloud_sql_proxy",
@@ -110,6 +112,8 @@ spec:
             name: mastodon-db-creds
         - secretRef:
             name: mastodon-secrets
+        - secretRef:
+            name: mailgun
       - name: cloudsql-proxy
         image: gcr.io/cloudsql-docker/gce-proxy:1.11
         command: ["/cloud_sql_proxy",
@@ -169,6 +173,8 @@ spec:
             name: mastodon-db-creds
         - secretRef:
             name: mastodon-secrets
+        - secretRef:
+            name: mailgun
       - name: cloudsql-proxy
         image: gcr.io/cloudsql-docker/gce-proxy:1.11
         command: ["/cloud_sql_proxy",
