@@ -1,7 +1,7 @@
 variable "project_name" {}
 
 variable "cluster_name" {
-  default = "mastodon_prod"
+  default = "mastodon-prod"
 }
 
 variable "region" {
@@ -11,3 +11,7 @@ variable "region" {
 variable "cluster_zone" {
   default = "us-central1-a"
 }
+
+variable "letsencrypt_email" {}
+
+variable "domain" {}

@@ -1,0 +1,68 @@
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # Email address used for ACME registration
+    email: "${letsencrypt_email}"
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    http01: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: mastodon
+  namespace: mastodon
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    certmanager.k8s.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - secretName: mastodon
+    hosts:
+    - ${domain}
+  rules:
+  - host: ${domain}
+    http:
+      paths:
+      - path: /api/v1/streaming/health
+        backend:
+          serviceName: streaming-ingress
+          servicePort: 4000
+      - path: /
+        backend:
+          serviceName: web-ingress
+          servicePort: 3000
+# apiVersion: contour.heptio.com/v1beta1
+# kind: IngressRoute
+# metadata:
+#   name: mastodon-routes
+#   namespace: mastodon
+#   annotations:
+#     kubernetes.io/tls-acme: "true"
+#     certmanager.k8s.io/cluster-issuer: "letsencrypt-staging"
+# spec:
+#   tls:
+#   - secretName: mastodon-routes
+#     hosts:
+#       ${domain}
+#   virtualhost:
+#     fqdn: ${domain}
+#   routes:
+#   - match: /api/v1/streaming
+#     services:
+#     - name: streaming-ingress
+#       port: 4000
+#       healthCheck:
+#         path: '/api/v1/streaming/health'
+
+#   - match: /
+#     permitInsecure: true
+#     services:
+#     - name: web-ingress
+#       port: 3000

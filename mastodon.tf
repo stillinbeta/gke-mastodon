@@ -119,3 +119,17 @@ provider "kubernetes" {
   # client_key             = "${base64decode(data.google_container_cluster.mastodon_prod.master_auth.0.client_key)}"
   # cluster_ca_certificate = "${base64decode(data.google_container_cluster.mastodon_prod.master_auth.0.cluster_ca_certificate)}"
 }
+
+data "template_file" "serve_yaml_template" {
+  template = "${file("serve.yaml.template")}"
+
+  vars {
+    letsencrypt_email = "${var.letsencrypt_email}"
+    domain = "${var.domain}"
+  }
+}
+
+resource "local_file" "serve_yaml" {
+  filename = "${path.module}/serve.yaml"
+  content = "${data.template_file.serve_yaml_template.rendered}"
+}
