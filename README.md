@@ -140,3 +140,30 @@ And set up the router. This file should've been created by Terraform.
 ```
 kubectl apply -f serve.yaml
 ```
+
+### Run the database migrations
+
+Before Mastodon is up and running, you'll need to apply some database migrations.
+
+First, get the IP address of a mastodon node:
+
+```
+kubectl get pods -n mastodon
+```
+
+look for something like `web-686d9b865b-kzqpw`. The numbers will be different, but that's okay.
+
+Run the migrations:
+
+```
+kubectl exec -n mastodon web-686d9b865b-kzqpw bundle exec rake db:migrate:setup
+```
+
+That may take a few minutes, but once it's done:
+
+## Conclusion
+
+At this point you should be good to go!
+Take a look at the [Mastodon administration guide][admin] for more ideas on how to proceed!
+
+[admin]: https://github.com/tootsuite/documentation/blob/master/Running-Mastodon/Administration-guide.md
