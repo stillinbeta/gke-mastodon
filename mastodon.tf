@@ -24,10 +24,16 @@ resource "random_string" "secret_key_base" {
   upper = false
 }
 
+resource "kubernetes_namespace" "mastodon" {
+  metadata = {
+    name = "mastodon"
+  }
+}
+
 resource "kubernetes_secret" "mastodon-secrets" {
   metadata = {
     name = "mastodon-secrets"
-    namespace = "mastodon"
+    namespace = "${kubernetes_namespace.mastodon.}"
   }
 
   data = {
@@ -120,6 +126,8 @@ provider "kubernetes" {
   # cluster_ca_certificate = "${base64decode(data.google_container_cluster.mastodon_prod.master_auth.0.cluster_ca_certificate)}"
 }
 
+
+
 data "template_file" "serve_yaml_template" {
   template = "${file("serve.yaml.template")}"
 
@@ -147,4 +155,17 @@ resource "kubernetes_secret" "smtp" {
     "SMTP_PORT" = "${var.smtp_port}"
     "SMTP_FROM_ADDRESS" = "notifications@${var.domain}"
   }
+}
+resource "google_dns_managed_zone" "mastodon" {
+  name = "mastodon"
+  dns_name = "${var.domain}"
+}
+
+resource "google_dns_record_set" "contour_a" {
+  name = "${var.domain}"
+  type = "A"
+  rrdatas = ["${var.contour_ip}"]
+
+  managed_zone = "${google_dns_managed_zone.mastodon.name}"
+  ttl = 300
 }

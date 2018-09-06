@@ -12,6 +12,8 @@ variable "cluster_zone" {
   default = "us-central1-a"
 }
 
+variable "contour_ip" {}
+
 variable "letsencrypt_email" {}
 
 variable "domain" {}

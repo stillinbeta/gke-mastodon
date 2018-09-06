@@ -1,6 +1,6 @@
 # Mastoodon on GKE
 
-This will set up Mastodon on GKE.
+This will set up Mastodon on GKE. It uses Contour as a load balancer / frontend, Cloud SQL Postgres for a database, and Mailgn for email.
 
 ## Dependencies
 
@@ -18,6 +18,12 @@ You need the following Google Cloud APIs enabled:
 [sql]: https://console.developers.google.com/apis/api/sqladmin.googleapis.com/overview
 [iam]:https://console.developers.google.com/apis/api/iam.googleapis.com/overview
 [resource]: https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview
+
+### Google Cloud credentials
+
+Create a new [service account][acct] for Terraform. Give it the Project Owner role. Check "furnish a new private key," and select json. Save the resulting file as "account.json" in the gke-mastodon directory.
+
+[acct]: https://console.cloud.google.com/iam-admin/serviceaccounts
 
 ### Google Kubernetes Engine
 
@@ -59,7 +65,7 @@ domain = "<domain>"
 To install contour, you'll need an admin clusterrolebind
 
 ```
-kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user ellie@stillinbeta.com
+kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user <your google email address>
 ```
 
 Then install Contour itself:
@@ -67,6 +73,16 @@ Then install Contour itself:
 ```
 kubectl apply -f vendor/contour.yaml
 ```
+
+You'll need the IP address Contour assigned to its load balancer.
+
+```
+kubectl get -n heptio-contour service contour -o wide
+```
+
+The IP address you want is listed under `external ip`.
+
+Set it as `contour_ip` in the terraform variables.
 
 ### cert-manager
 
@@ -86,6 +102,9 @@ Instead, set up an account (Mastodon recommends [Mailgun][mg] or [SparkPost][sp]
 
 ## Set Up
 
+
+### Terraform
+
 ```
 terraform plan -out terraform.plan
 ```
@@ -98,7 +117,20 @@ To actually create them, run:
 terraform apply terraform.plan
 ```
 
-Then, install Mastodon into the cluster:
+This may take a while, especially creating the database instance.
+
+### Google Cloud DNS
+
+After the zone is created (after running Terraform), you'll need to point your name servers at it.
+You can do retrieve them with:
+
+```
+gcloud dns managed-zones describe mastodon
+```
+
+### Kubernetes
+
+Next, install Mastodon into the cluster:
 
 ```
 kubectl apply -f mastodon.yaml
