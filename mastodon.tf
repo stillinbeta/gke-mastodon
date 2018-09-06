@@ -33,7 +33,7 @@ resource "kubernetes_namespace" "mastodon" {
 resource "kubernetes_secret" "mastodon-secrets" {
   metadata = {
     name = "mastodon-secrets"
-    namespace = "${kubernetes_namespace.mastodon.}"
+    namespace = "mastodon"
   }
 
   data = {
@@ -158,11 +158,11 @@ resource "kubernetes_secret" "smtp" {
 }
 resource "google_dns_managed_zone" "mastodon" {
   name = "mastodon"
-  dns_name = "${var.domain}"
+  dns_name = "${var.domain}."
 }
 
 resource "google_dns_record_set" "contour_a" {
-  name = "${var.domain}"
+  name = "${var.domain}."
   type = "A"
   rrdatas = ["${var.contour_ip}"]
 
