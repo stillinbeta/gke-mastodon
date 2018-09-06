@@ -145,7 +145,7 @@ resource "local_file" "serve_yaml" {
 resource "kubernetes_secret" "smtp" {
   metadata = {
     namespace = "mastodon"
-    name = "smtp-secerts"
+    name = "smtp-secrets"
   }
 
   data = {
