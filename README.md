@@ -1,6 +1,6 @@
-# Mastoodon on GKE
+# Mastodon on GKE
 
-This will set up Mastodon on GKE. It uses Contour as a load balancer / frontend, Cloud SQL Postgres for a database, and Mailgn for email.
+This will set up Mastodon on GKE. It uses Contour as a load balancer / frontend, Cloud SQL Postgres for a database, and Mailgun for email.
 
 ## Dependencies
 
@@ -11,7 +11,7 @@ The following prerequesties are necessary to set up Mastodon
 You need the following Google Cloud APIs enabled:
 
 * [Cloud SQL][sql]
-* [ IAM Identity and Account Management][iam]
+* [IAM Identity and Account Management][iam]
 * [Cloud Resource Manager][resource]
 
 
