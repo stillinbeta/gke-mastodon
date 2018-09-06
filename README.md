@@ -1,6 +1,6 @@
-# Mastoodon on GKE
+# Mastodon on GKE
 
-This will set up Mastodon on GKE. It uses Contour as a load balancer / frontend, Cloud SQL Postgres for a database, and Mailgn for email.
+This will set up Mastodon on GKE. It uses Contour as a load balancer / frontend, and Cloud SQL Postgres for a database. 
 
 ## Dependencies
 
